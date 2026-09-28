@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Mały Murarz — muruj jak najwyższą ścianę z cegieł, sam albo we dwoje przez internet.">
+<meta name="theme-color" content="#1b2233">
+<title>Mały Murarz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800&display=swap">
+<style>
+  html,body{margin:0}
+  [hidden]{display:none!important}
+  *,*::before,*::after{box-sizing:border-box}
+  img{max-width:100%}
+  :root{
+    color-scheme: dark;
+    --night:#1b2233; --panel:#252e44; --line:#36415c;
+    --brick:#c0543a; --mortar:#e6dccd; --ink:#f3ede4; --muted:#a3adc4; --gold:#f2c14e;
+  }
+  html,body{height:100%}
+  body{background:var(--night);color:var(--ink);font-family:"Nunito",system-ui,sans-serif;font-size:15px;
+    padding-inline:16px;padding-block:14px;box-sizing:border-box}
+  .wrap{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+  h1{font-family:"Bungee",Impact,sans-serif;font-weight:400;font-size:26px;line-height:1;margin:0;color:var(--mortar);letter-spacing:.5px}
+  h1 span{color:var(--brick)}
+  .stats{display:flex;gap:14px}
+  .stat{display:flex;flex-direction:column;align-items:flex-end}
+  .stat b{font-family:"Bungee",Impact,sans-serif;font-weight:400;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.1}
+  .stat small{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:800}
+  .stage{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--line);aspect-ratio:360/560;max-width:100%;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  canvas{display:block;width:100%;height:100%;cursor:pointer}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:rgba(20,26,40,.72);text-align:center;padding:24px;backdrop-filter:blur(2px)}
+  .overlay h2{font-family:"Bungee",Impact,sans-serif;font-weight:400;font-size:30px;margin:0;color:var(--mortar);text-wrap:balance}
+  .overlay p{margin:0;max-width:30ch;color:var(--ink);line-height:1.45}
+  button{font-family:"Bungee",Impact,sans-serif;font-size:17px;background:var(--brick);color:#fff;border:0;border-radius:10px;
+    padding:12px 22px;cursor:pointer;box-shadow:0 4px 0 #7e2f1e}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #7e2f1e}
+  button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+  .hint{font-size:13px;color:var(--muted);text-align:center;margin:0}
+  .btns{display:flex;flex-direction:column;gap:10px;width:min(240px,100%)}
+  .btn-ghost{background:transparent;color:var(--mortar);box-shadow:inset 0 0 0 2px var(--mortar)}
+  .btn-ghost:active{transform:translateY(1px);box-shadow:inset 0 0 0 2px var(--mortar)}
+  .overlay .best{font-size:13px;color:var(--gold);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .overlay.rank{justify-content:flex-start;padding:22px 18px;gap:12px;overflow-y:auto}
+  .rank-list{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column;gap:6px;text-align:left}
+  .rank-list li{display:grid;grid-template-columns:28px 26px 1fr auto;align-items:center;gap:8px;background:rgba(37,46,68,.85);border-radius:9px;padding:7px 10px}
+  .rank-list li.me{box-shadow:inset 0 0 0 2px var(--gold)}
+  .rank-list .pos{font-family:"Bungee",Impact,sans-serif;font-size:15px;color:var(--muted);text-align:center}
+  .rank-list li:nth-child(1) .pos{color:var(--gold)}
+  .rank-list li:nth-child(2) .pos{color:#d3d8e2}
+  .rank-list li:nth-child(3) .pos{color:#d59a6a}
+  .rank-list img{width:26px;height:26px;border-radius:50%;background:var(--line)}
+  .rank-list .who{display:flex;flex-direction:column;min-width:0}
+  .rank-list .who b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank-list .who small{font-size:11.5px;color:var(--muted)}
+  .rank-list .pts{font-family:"Bungee",Impact,sans-serif;font-size:17px;font-variant-numeric:tabular-nums}
+  .nick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;font-size:14px}
+  .nick b{color:var(--gold);font-weight:800;max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btn-small{font-family:"Nunito",system-ui,sans-serif;font-weight:800;font-size:12.5px;padding:6px 11px;border-radius:8px;box-shadow:none;background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+  .btn-small:active{transform:translateY(1px);box-shadow:none}
+  .nick-form{display:flex;flex-direction:column;gap:8px;width:min(260px,100%)}
+  .nick-form input{font-family:"Nunito",system-ui,sans-serif;font-weight:700;font-size:16px;padding:10px 12px;border-radius:10px;border:2px solid var(--line);background:var(--night);color:var(--ink);text-align:center}
+  .nick-form input:focus-visible{outline:none;border-color:var(--gold)}
+  .nick-form .row{display:flex;gap:8px}
+  .nick-form .row button{flex:1}
+  .nick-err{font-size:12.5px;color:#ff9b87;min-height:1em;margin:0}
+  .duel-code{font-family:"Bungee",Impact,sans-serif;font-size:40px;letter-spacing:.12em;color:var(--gold);line-height:1}
+  .duel-players{display:flex;flex-direction:column;gap:6px;width:min(280px,100%)}
+  .duel-player{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:8px;background:rgba(37,46,68,.85);border-radius:9px;padding:8px 10px;text-align:left}
+  .duel-player img{width:26px;height:26px;border-radius:50%;background:var(--line)}
+  .duel-player b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .duel-player span.st{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .duel-player span.st.ok{color:#8fd694}
+  .duel-player.wait{opacity:.6}
+  .join-row{display:flex;gap:8px;width:min(280px,100%)}
+  .join-row input{flex:1;min-width:0;font-family:"Bungee",Impact,sans-serif;font-size:20px;letter-spacing:.12em;text-transform:uppercase;text-align:center;padding:8px;border-radius:10px;border:2px solid var(--line);background:var(--night);color:var(--ink)}
+  .join-row input:focus-visible{outline:none;border-color:var(--gold)}
+  .duel-msg{font-size:13px;color:#ff9b87;min-height:1em;margin:0}
+  .count{font-family:"Bungee",Impact,sans-serif;font-size:96px;color:var(--gold);line-height:1;text-shadow:0 4px 0 rgba(0,0,0,.35)}
+  .opp{position:absolute;top:40px;right:8px;width:96px;border-radius:8px;overflow:hidden;background:rgba(27,34,51,.82);border:1px solid var(--line);pointer-events:none}
+  .opp canvas{display:block;width:96px;height:120px}
+  .opp div{font-size:10.5px;font-weight:800;padding:3px 6px;line-height:1.25;color:var(--ink)}
+  .opp div b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--gold)}
+  .duel-result{font-size:14px;line-height:1.45;margin:0;max-width:32ch}
+  .rank-note{font-size:12.5px;color:var(--muted);margin:0;max-width:34ch;line-height:1.4}
+  .tabs{display:flex;gap:6px}
+  .tabs button{font-size:12px;padding:7px 12px;box-shadow:none;background:var(--panel);color:var(--muted)}
+  .tabs button[aria-pressed="true"]{background:var(--brick);color:#fff}
+  .pause{position:absolute;top:8px;left:8px;font-size:12px;padding:6px 10px;box-shadow:none;background:rgba(27,34,51,.75);border:1px solid var(--line)}
+  .pause:active{transform:none;box-shadow:none}
+  .street h3{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:0 0 8px;font-weight:800}
+  .houses{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;min-height:74px;align-items:flex-end}
+  .houses img{width:64px;height:64px;background:var(--panel);border-radius:8px;flex:none}
+  .houses .empty{color:var(--muted);font-size:13px;align-self:center}
+  kbd{font-family:inherit;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Mały<br><span>Murarz</span></h1>
+    <div class="stats">
+      <div class="stat"><b id="sScore">0</b><small>Punkty</small></div>
+      <div class="stat"><b id="sHouses">0</b><small>Warstwy</small></div>
+      <div class="stat"><b id="sBest">0</b><small>Rekord</small></div>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="Plac budowy"></canvas>
+    <button class="pause" id="btnPause" hidden>❚❚ Menu</button>
+    <div class="overlay" id="ovMenu">
+      <h2 id="menuTitle">Zbuduj dom z cegieł</h2>
+      <p id="menuText">Dźwig przesuwa warstwę cegieł. Stuknij, żeby ją opuścić. Co wystaje poza ścianę, odpada. Muruj jak najwyżej, bez limitu. Gdy warstwa spadnie, twoje punkty trafią do rankingu.</p>
+      <div class="btns">
+        <button id="btnResume" hidden>Graj dalej</button>
+        <button id="btnStart">Start</button>
+        <button id="btnDuel" class="btn-ghost">Gra we dwoje</button>
+        <button id="btnRank" class="btn-ghost">Ranking</button>
+      </div>
+      <span class="best" id="menuBest"></span>
+      <div class="nick" id="nickRow"><span>Grasz jako <b id="nickShow">Murarz</b></span><button class="btn-small" id="btnNick">Zmień nick</button></div>
+    </div>
+    <div class="opp" id="opp" hidden><canvas id="oppCv" width="192" height="240"></canvas><div><b id="oppName">Przeciwnik</b><span id="oppInfo"></span></div></div>
+    <div class="overlay" id="ovDuel" hidden>
+      <h2>Gra we dwoje</h2>
+      <div id="duelPick" class="btns">
+        <p style="margin:0">Każdy gra u siebie. Wygrywa ten, kto wymuruje wyżej.</p>
+        <button id="duelCreate">Załóż pokój</button>
+        <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">albo wpisz kod od znajomego:</p>
+        <form class="join-row" id="duelJoinForm" novalidate>
+          <input id="duelCodeIn" maxlength="4" autocomplete="off" spellcheck="false" aria-label="Kod pokoju" placeholder="KOD">
+          <button type="submit" id="duelJoin">Dołącz</button>
+        </form>
+      </div>
+      <div id="duelLobby" class="btns" hidden style="align-items:center">
+        <span style="font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--muted)">KOD POKOJU</span>
+        <span class="duel-code" id="duelCode">----</span>
+        <p style="margin:0;font-size:13px" id="duelHint">Podaj ten kod drugiej osobie.</p>
+        <div class="duel-players" id="duelPlayers"></div>
+        <button id="duelReady">Gotowy!</button>
+      </div>
+      <p class="duel-msg" id="duelMsg" aria-live="polite"></p>
+      <button id="duelBack" class="btn-ghost">Wyjdź</button>
+    </div>
+    <div class="overlay" id="ovCount" hidden><span class="count" id="countNum">3</span><p id="countVs"></p></div>
+    <div class="overlay" id="ovNick" hidden>
+      <h2>Twój nick</h2>
+      <p>Tak będziesz podpisany w rankingu.</p>
+      <form class="nick-form" id="nickForm" novalidate>
+        <input id="nickInput" maxlength="24" autocomplete="nickname" spellcheck="false" aria-label="Nick" placeholder="np. Mistrz Kielni">
+        <p class="nick-err" id="nickErr" aria-live="polite"></p>
+        <div class="row">
+          <button type="button" class="btn-ghost" id="nickCancel">Anuluj</button>
+          <button type="submit" id="nickSave">Zapisz</button>
+        </div>
+      </form>
+    </div>
+    <div class="overlay rank" id="ovRank" hidden>
+      <h2>Ranking</h2>
+      <div class="tabs" id="rankTabs" hidden>
+        <button id="tabAll" aria-pressed="true">Wszyscy</button>
+        <button id="tabMine" aria-pressed="false">Moje wyniki</button>
+      </div>
+      <ol class="rank-list" id="rankList"></ol>
+      <p class="rank-note" id="rankNote"></p>
+      <div class="btns">
+        <button id="btnRankNick" class="btn-small">Zmień nick</button>
+        <button id="btnRankBack" class="btn-ghost">Wróć</button>
+      </div>
+    </div>
+    <div class="overlay" id="ovOver" hidden>
+      <h2 id="overTitle">Ściana runęła!</h2>
+      <p id="overText"></p>
+      <p class="duel-result" id="overDuel" hidden></p>
+      <span class="best" id="overRank"></span>
+      <div class="btns">
+        <button id="btnAgain">Jeszcze raz</button>
+        <button id="btnOverRank" class="btn-ghost">Ranking</button>
+        <button id="btnOverMenu" class="btn-ghost">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">Stuknij w plac budowy albo naciśnij <kbd>Spacja</kbd>. Idealne trafienie daje premię.</p>
+
+</div>
+
+<script>
+(() => {
+
+  // =====================================================================
+  //  USTAWIENIA FIREBASE — wklej tu dane swojego projektu (patrz README).
+  //  Bez nich gra działa solo, z wynikami zapisanymi w przeglądarce.
+  // =====================================================================
+ const FIREBASE_CONFIG = {
+  apiKey: "AIza...",
+  authDomain: "maly-murarz.firebaseapp.com",
+  databaseURL: "https://maly-murarz-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "maly-murarz",
+  appId: "1:1234567890:web:abc123"
+  };
+
+  // Firebase Realtime Database udaje tu te same funkcje, których gra używa
+  // do rankingu (db), gracza (user) i pokoi do gry we dwoje (roomCap).
+  async function initBackend(){
+    if (!FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.databaseURL || !window.firebase) return null;
+    const app = firebase.initializeApp(FIREBASE_CONFIG);
+    const cred = await firebase.auth(app).signInAnonymously();
+    const uid = cred.user.uid, rtdb = firebase.database(app);
+    const docSnap = s => ({ exists: s.exists(), data: () => s.val() });
+    const db = {
+      doc(path){
+        const r = rtdb.ref(path);
+        return {
+          get: async () => docSnap(await r.get()),
+          set: v => r.set(v),
+          update: v => r.update(v),
+          onSnapshot(next, err){ const h = r.on('value', s => next(docSnap(s)), e => err && err(e)); return () => r.off('value', h); }
+        };
+      },
+      collection(name){
+        return { orderBy(field, dir){ return { limit(n){ return {
+          onSnapshot(next, err){
+            const q = rtdb.ref(name).orderByChild(field).limitToLast(n);
+            const h = q.on('value', snap => {
+              const arr = [];
+              snap.forEach(c => { arr.push(c.val()); });
+              if (dir === 'desc') arr.reverse();
+              next({ docs: arr.map(v => ({ exists: true, data: () => v })) });
+            }, e => err && err(e));
+            return () => q.off('value', h);
+          }
+        }; } }; } };
+      }
+    };
+    const user = {
+      id: async () => uid,
+      me: async () => ({ id: uid, name: '', avatarUrl: '' }),
+      profiles: async ids => Object.fromEntries([].concat(ids).map(i => [i, { id: i, name: '', avatarUrl: '', isMe: i === uid }]))
+    };
+    const roomCap = {
+      async join(name){
+        const players = rtdb.ref('rooms/' + name + '/players');
+        const mine = players.push();
+        const key = mine.key;
+        await mine.onDisconnect().remove();
+        await mine.set({ uid, v: 1 });
+        let snap = [], ls = [];
+        const h = players.on('value', s => {
+          const arr = [];
+          s.forEach(c => { const v = c.val() || {}; arr.push({ peer: c.key, by: v.uid || null, isMe: v.uid === uid, sameTab: c.key === key, kind: 'viewer', guest: false, presence: v, updatedAt: Date.now() }); });
+          snap = arr;
+          ls.forEach(f => { try { f({ peers: snap, joined: [], left: [], updated: [] }); } catch(e){} });
+        });
+        return {
+          name,
+          presence: patch => mine.update({ ...patch, uid }),
+          peers: () => snap,
+          onPeers(f){ ls.push(f); setTimeout(() => f({ peers: snap, joined: [], left: [], updated: [] }), 0); return () => { ls = ls.filter(x => x !== f); }; },
+          connected: () => true,
+          async leave(){ players.off('value', h); ls = []; await mine.onDisconnect().cancel().catch(() => {}); await mine.remove().catch(() => {}); }
+        };
+      }
+    };
+    return { db, user, roomCap };
+  }
+  // small round avatar with the first letter, for players without a photo
+  function initialAvatar(name){
+    const c = document.createElement('canvas'); c.width = c.height = 52;
+    const g = c.getContext('2d'), t = (name || '?').trim().charAt(0).toUpperCase() || '?';
+    let h = 0; for (const ch of name || '') h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    g.fillStyle = `hsl(${h % 360} 45% 42%)`; g.beginPath(); g.arc(26, 26, 26, 0, 7); g.fill();
+    g.fillStyle = '#fff'; g.font = '800 26px Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, 26, 28);
+    return c.toDataURL();
+  }
+  const W = 360, H = 560, GROUND = H - 70, ROW = 22, BRICK = 44, ROWS_PER_HOUSE = 9, START_W = 200, HOVER = 70, CM_PER_ROW = 7;
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function fit(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  fit(); addEventListener('resize', fit);
+
+  let best = 0;
+  try { best = +localStorage.getItem('murarz-best') || 0; } catch(e) {}
+  $('sBest').textContent = best;
+
+  let S;
+  function newGame(){
+    S = { phase:'play', score:0, rows:[], found:{x:(W-START_W)/2, w:START_W},
+          cur:null, debris:[], pops:[], shake:0, cam:0 };
+    updHud(); spawn();
+  }
+  function speed(){ return 110 + Math.min(S.rows.length * 5, 290); }
+  const heightTxt = n => (n * CM_PER_ROW / 100).toFixed(2).replace('.', ',') + ' m';
+  const layersTxt = n => `${n} ${n === 1 ? 'warstwa' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'warstwy' : 'warstw')}`;
+  function topRow(){ return S.rows.length ? S.rows[S.rows.length-1] : S.found; }
+  function rowY(i){ return GROUND - 10 - (i+1) * ROW; }
+  function spawn(){
+    const p = topRow(), fromLeft = Math.random() < .5;
+    S.cur = { x: fromLeft ? -p.w * .3 : W - p.w * .7, w: p.w, dir: fromLeft ? 1 : -1,
+              y: rowY(S.rows.length) - HOVER, falling:false, vy:0, i:S.rows.length };
+  }
+  function updHud(){
+    $('sScore').textContent = S.score; $('sHouses').textContent = S.rows.length;
+    if (S.score > best){ best = S.score; $('sBest').textContent = best; try{localStorage.setItem('murarz-best', best);}catch(e){} }
+  }
+
+  function drop(){
+    if (!S || paused || S.phase !== 'play' || !S.cur || S.cur.falling) return;
+    S.cur.falling = true; S.cur.vy = 60;
+  }
+  function land(){
+    const c = S.cur, p = topRow(), y = rowY(c.i);
+    const L = Math.max(c.x, p.x), R = Math.min(c.x + c.w, p.x + p.w);
+    S.cur = null;
+    if (R - L <= 2){
+      S.debris.push({x:c.x, w:c.w, y, vy:0, vx:c.dir*30, rot:0, vr:c.dir*1.5, i:c.i});
+      return gameOver();
+    }
+    let row;
+    if (Math.abs(c.x - p.x) < 5){
+      row = { x:p.x, w:Math.min(p.w + 6, START_W) , i:c.i };
+      row.x = p.x - (row.w - p.w)/2;
+      S.score += 25; pop('Idealnie! +25', row.x + row.w/2, y - 8, '#f2c14e');
+    } else {
+      row = { x:L, w:R-L, i:c.i };
+      if (c.x < L) S.debris.push({x:c.x, w:L-c.x, y, vy:0, vx:-40, rot:0, vr:-2, i:c.i});
+      if (c.x + c.w > R) S.debris.push({x:R, w:c.x+c.w-R, y, vy:0, vx:40, rot:0, vr:2, i:c.i});
+      const pts = Math.max(1, Math.round(row.w / 10));
+      S.score += pts; pop('+' + pts, row.x + row.w/2, y - 8, '#e6dccd');
+    }
+    S.rows.push(row); S.shake = 3;
+    const n = S.rows.length;
+    if (n % 10 === 0){ const b = n * 5; S.score += b; pop(`${n} warstw! +${b}`, W/2, y - 40, '#f2c14e'); }
+    updHud(); spawn();
+  }
+  function pop(t,x,y,col){ S.pops.push({t,x,y,col,life:1}); }
+
+  function gameOver(){
+    S.phase = 'over'; S.layers = S.rows.length; $('btnPause').hidden = true;
+    if (S.duel) duelStream(true);
+    const res = submitScore(S.score, S.rows.length);
+    $('overRank').textContent = '';
+    res.then(t => { $('overRank').textContent = t || ''; });
+    setTimeout(() => {
+      $('overTitle').textContent = 'Warstwa spadła!';
+      $('overText').textContent = `Zdobyłeś ${S.score} pkt i wymurowałeś ${layersTxt(S.layers)} (${heightTxt(S.layers)}).` + (S.score >= best && S.score>0 ? ' To nowy rekord!' : ` Rekord: ${best}.`);
+      show('ovOver'); $('btnAgain').focus();
+      if (S && S.duel) duelTick();
+    }, 900);
+  }
+
+  // ---------- drawing ----------
+  function hash(a,b){ let h = (a*374761393 + b*668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h>>>16))>>>0) / 4294967295; }
+  const brickCols = ['#b84a33','#c0543a','#a9432e','#c9603f','#b3503a','#9f3f2b'];
+  function drawCourse(g, x, w, y, i){
+    g.fillStyle = '#d8cdbd'; g.fillRect(x, y, w, ROW);
+    const off = (i % 2) * (BRICK/2);
+    const k0 = Math.floor((x + off) / BRICK) - 1, k1 = Math.ceil((x + w + off) / BRICK) + 1;
+    g.save(); g.beginPath(); g.rect(x, y, w, ROW); g.clip();
+    for (let k = k0; k <= k1; k++){
+      const bx = k*BRICK - off + 1.5, bw = BRICK - 3;
+      g.fillStyle = brickCols[Math.floor(hash(k, i) * brickCols.length)];
+      g.fillRect(bx, y + 1.5, bw, ROW - 3);
+      g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(bx, y + 1.5, bw, 3);
+      g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(bx, y + ROW - 5, bw, 3.5);
+    }
+    g.restore();
+  }
+  function roofH(){ return 80; }
+  function span(rows, a, b){
+    let L = -1e9, R = 1e9;
+    for (let i=a;i<=b;i++){ const r = rows[i]; if(!r) return null; L = Math.max(L, r.x); R = Math.min(R, r.x + r.w); }
+    return R > L ? {L, R} : null;
+  }
+  function drawWindow(g, cx, y, w, h, lit){
+    g.fillStyle = '#6b4a34'; g.fillRect(cx - w/2 - 3, y - 3, w + 6, h + 6);
+    g.fillStyle = lit ? '#ffd97a' : '#2b3a55'; g.fillRect(cx - w/2, y, w, h);
+    g.fillStyle = '#6b4a34'; g.fillRect(cx - 1.5, y, 3, h); g.fillRect(cx - w/2, y + h/2 - 1.5, w, 3);
+    g.fillStyle = '#e6dccd'; g.fillRect(cx - w/2 - 5, y + h + 3, w + 10, 4);
+  }
+  function drawHouse(g, rows, found, roofP){
+    // foundation
+    g.fillStyle = '#8a8f99'; g.fillRect(found.x - 6, GROUND - 10, found.w + 12, 10);
+    g.fillStyle = '#6f747e'; g.fillRect(found.x - 6, GROUND - 3, found.w + 12, 3);
+    rows.forEach((r,i) => drawCourse(g, r.x, r.w, rowY(i), i));
+    if (roofP <= 0) return;
+    const done = roofP >= 1;
+    if (done){
+      const d = span(rows, 0, 3);
+      if (d && d.R - d.L >= 34){
+        const cx = (d.L + d.R)/2, dy = rowY(3) + 4, dh = GROUND - 10 - dy;
+        g.fillStyle = '#5a3a26'; g.fillRect(cx - 17, dy - 3, 34, dh + 3);
+        g.fillStyle = '#7d4f31'; g.fillRect(cx - 14, dy, 28, dh);
+        g.fillStyle = '#6a4229'; g.fillRect(cx - 10, dy + 6, 20, 14); g.fillRect(cx - 10, dy + 26, 20, dh - 32);
+        g.fillStyle = '#f2c14e'; g.beginPath(); g.arc(cx + 9, dy + dh/2 + 4, 2.2, 0, 7); g.fill();
+      }
+      const w = span(rows, 5, 7);
+      if (w){
+        const ww = w.R - w.L, wy = rowY(7) + 6, wh = ROW*3 - 14;
+        if (ww >= 110){ drawWindow(g, w.L + ww*.25, wy, 30, wh, true); drawWindow(g, w.L + ww*.75, wy, 30, wh, false); }
+        else if (ww >= 44) drawWindow(g, w.L + ww/2, wy, 30, wh, true);
+      }
+    }
+    const t = rows[rows.length-1]; if (!t) return;
+    const base = rowY(rows.length-1), rh = Math.min(roofH(), t.w*.55 + 20);
+    const drop = (1 - Math.min(roofP,1)) * -120;
+    g.save(); g.translate(0, drop);
+    const L = t.x - 12, R = t.x + t.w + 12, peak = base - rh;
+    // chimney
+    g.fillStyle = '#9f3f2b'; g.fillRect(t.x + t.w*.68, peak + rh*.25, 16, rh*.45);
+    g.fillStyle = '#5b6474'; g.fillRect(t.x + t.w*.68 - 2, peak + rh*.25 - 5, 20, 6);
+    g.beginPath(); g.moveTo(L, base + 2); g.lineTo((L+R)/2, peak); g.lineTo(R, base + 2); g.closePath();
+    g.fillStyle = '#3e4b63'; g.fill();
+    g.save(); g.clip();
+    g.strokeStyle = 'rgba(0,0,0,.22)'; g.lineWidth = 2;
+    for (let yy = base; yy > peak; yy -= 11){ g.beginPath(); g.moveTo(L, yy); g.lineTo(R, yy); g.stroke(); }
+    g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(L, peak, (R-L)/2, rh + 4);
+    g.restore();
+    g.fillStyle = '#2c3548'; g.fillRect(L - 2, base, R - L + 4, 5);
+    g.restore();
+  }
+
+  // background (static, painted each frame from cached canvas)
+  const bg = document.createElement('canvas'); bg.width = W*2; bg.height = H*2;
+  (function paintBg(){
+    const g = bg.getContext('2d'); g.scale(2,2);
+    const sky = g.createLinearGradient(0,0,0,GROUND);
+    sky.addColorStop(0,'#27365a'); sky.addColorStop(.6,'#4c5d8a'); sky.addColorStop(1,'#d9927a');
+    g.fillStyle = sky; g.fillRect(0,0,W,H);
+    for (let i=0;i<40;i++){ g.fillStyle = `rgba(255,255,255,${.25+hash(i,9)*.5})`; g.fillRect(hash(i,1)*W, hash(i,2)*200, 1.5, 1.5); }
+    g.fillStyle = '#f4e3b8'; g.beginPath(); g.arc(290, 70, 18, 0, 7); g.fill();
+    g.fillStyle = '#27365a'; g.beginPath(); g.arc(282, 64, 16, 0, 7); g.fill();
+    g.fillStyle = '#3a4a6e'; g.beginPath(); g.moveTo(0,GROUND-40);
+    for (let x=0;x<=W;x+=20) g.lineTo(x, GROUND-40 - Math.sin(x/55)*18 - 10); g.lineTo(W,GROUND); g.lineTo(0,GROUND); g.fill();
+    g.fillStyle = '#4f7a45'; g.fillRect(0, GROUND, W, H-GROUND);
+    g.fillStyle = '#446b3c'; g.fillRect(0, GROUND, W, 4);
+    g.fillStyle = '#6b5842'; g.fillRect(0, GROUND+34, W, 36);
+    g.fillStyle = 'rgba(0,0,0,.12)'; for (let x=0;x<W;x+=26) g.fillRect(x, GROUND+34, 13, 36);
+  })();
+  function drawCrane(){
+    ctx.fillStyle = '#e0a93a'; ctx.fillRect(0, 18, W, 10);
+    ctx.strokeStyle = '#a47620'; ctx.lineWidth = 1.5;
+    for (let x=0;x<W;x+=14){ ctx.beginPath(); ctx.moveTo(x,18); ctx.lineTo(x+7,28); ctx.lineTo(x+14,18); ctx.stroke(); }
+  }
+  // sky above the painted backdrop, for tall towers
+  const skyStars = Array.from({length:60}, (_, i) => ({ x: hash(i, 21) * W, y: hash(i, 22) * 2000, a: .2 + hash(i, 23) * .6 }));
+
+  let last = performance.now();
+  function frame(now){
+    const dt = Math.min((now - last)/1000, 0.05); last = now;
+    if (S && !paused) update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+  function update(dt){
+    const c = S.cur;
+    if (c){
+      if (!c.falling){
+        c.x += c.dir * speed() * dt;
+        if (c.x + c.w > W + c.w*.35){ c.x = W + c.w*.35 - c.w; c.dir = -1; }
+        if (c.x < -c.w*.35){ c.x = -c.w*.35; c.dir = 1; }
+      } else {
+        c.vy += 1800*dt; c.y += c.vy*dt;
+        if (c.y >= rowY(c.i)) { c.y = rowY(c.i); land(); }
+      }
+    }
+    S.debris.forEach(d => { d.vy += 1200*dt; d.y += d.vy*dt; d.x += d.vx*dt; d.rot += d.vr*dt; });
+    S.debris = S.debris.filter(d => d.y + S.cam < H + 60);
+    if (S.duel && S.phase === 'play') duelStream(false);
+    S.pops.forEach(p => { p.y -= 30*dt; p.life -= dt*.9; });
+    S.pops = S.pops.filter(p => p.life > 0);
+    S.shake = Math.max(0, S.shake - dt*20);
+    // camera follows the top of the wall
+    const want = S.phase === 'over' ? S.cam : Math.max(0, 170 - (rowY(S.rows.length) - HOVER));
+    S.cam += (want - S.cam) * Math.min(1, dt * 4);
+    if (S.phase === 'over' && S.rows.length && !S.collapsed){
+      S.collapsed = true;
+      const n = S.rows.length;
+      S.rows.forEach((r,i) => { if (rowY(i) + S.cam > -ROW && rowY(i) + S.cam < H) S.debris.push({x:r.x, w:r.w, y:rowY(i), vy:-80 - (n - i)*6, vx:(Math.random()-.5)*160, rot:0, vr:(Math.random()-.5)*4, i}); });
+      S.rows = [];
+    }
+  }
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    const cam = S ? S.cam : 0;
+    if (cam > 0){
+      // night sky above the backdrop, stars drift with the wall
+      ctx.fillStyle = '#1c2640'; ctx.fillRect(0, 0, W, cam + 2);
+      skyStars.forEach(st => { const y = st.y - 2000 + cam; if (y > 0 && y < cam) { ctx.fillStyle = `rgba(255,255,255,${st.a})`; ctx.fillRect(st.x, y, 1.5, 1.5); } });
+      const g = ctx.createLinearGradient(0, Math.max(0, cam - 120), 0, cam + 1);
+      g.addColorStop(0, 'rgba(39,54,90,0)'); g.addColorStop(1, '#27365a');
+      ctx.fillStyle = g; ctx.fillRect(0, Math.max(0, cam - 120), W, 122);
+    }
+    if (cam < H) ctx.drawImage(bg, 0, cam, W, H);
+    if (!S){ drawHouse(ctx, demoRows, {x:(W-START_W)/2, w:START_W}, 1); drawCrane(); return; }
+    ctx.save();
+    ctx.translate(0, cam + (S.shake && !reduce ? Math.sin(performance.now()/20)*S.shake*.5 : 0));
+    // foundation + visible courses only
+    ctx.fillStyle = '#8a8f99'; ctx.fillRect(S.found.x - 6, GROUND - 10, S.found.w + 12, 10);
+    ctx.fillStyle = '#6f747e'; ctx.fillRect(S.found.x - 6, GROUND - 3, S.found.w + 12, 3);
+    for (let i = 0; i < S.rows.length; i++){
+      const y = rowY(i) + cam; if (y > H || y < -ROW) continue;
+      const r = S.rows[i]; drawCourse(ctx, r.x, r.w, rowY(i), i);
+    }
+    ctx.restore();
+    drawCrane();
+    const c = S.cur;
+    if (c){
+      const cx = c.x + c.w/2, cy = c.y + cam;
+      ctx.fillStyle = '#55606f'; ctx.fillRect(cx - 14, 26, 28, 8);
+      if (!c.falling){
+        ctx.strokeStyle = '#2b2f36'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(cx, 34); ctx.lineTo(cx, cy - 12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, cy - 12); ctx.lineTo(c.x + 4, cy); ctx.moveTo(cx, cy - 12); ctx.lineTo(c.x + c.w - 4, cy); ctx.stroke();
+        ctx.fillStyle = '#e0a93a'; ctx.fillRect(cx - 4, cy - 16, 8, 6);
+        ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(c.x, rowY(c.i) + cam, c.w, ROW);
+      }
+      drawCourse(ctx, c.x, c.w, cy, c.i);
+    }
+    ctx.save(); ctx.translate(0, cam);
+    S.debris.forEach(d => {
+      ctx.save(); ctx.translate(d.x + d.w/2, d.y + ROW/2); ctx.rotate(d.rot);
+      drawCourse(ctx, -d.w/2, d.w, -ROW/2, d.i); ctx.restore();
+    });
+    ctx.textAlign = 'center'; ctx.font = '16px Bungee, Impact, sans-serif';
+    S.pops.forEach(p => { ctx.globalAlpha = Math.max(0,p.life); ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillText(p.t, p.x+1, p.y+2); ctx.fillStyle = p.col; ctx.fillText(p.t, p.x, p.y); });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    // opponent's height, as a line across the wall
+    if (S.duel && oppView && oppView.layers > 0){
+      const y = rowY(oppView.layers - 1) + cam;
+      if (y > 36 && y < H - 30){
+        ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = 'rgba(242,193,78,.85)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.restore();
+        ctx.font = '800 11px Nunito, sans-serif'; ctx.textAlign = 'left';
+        const t = `${oppView.name}: ${oppView.layers}`;
+        ctx.fillStyle = 'rgba(27,34,51,.8)'; ctx.fillRect(6, y - 17, ctx.measureText(t).width + 10, 15);
+        ctx.fillStyle = '#f2c14e'; ctx.fillText(t, 11, y - 6);
+      }
+    }
+    // height readout
+    const n = S.phase === 'over' ? (S.layers || 0) : S.rows.length;
+    ctx.fillStyle = 'rgba(27,34,51,.7)'; ctx.fillRect(0, H - 30, W, 30);
+    ctx.font = '800 11px Nunito, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(243,237,228,.9)';
+    ctx.fillText(`${layersTxt(n).toUpperCase()} · ${heightTxt(n)}`, 12, H - 11);
+    ctx.textAlign = 'right'; ctx.fillText(S.duel ? 'POJEDYNEK' : 'CO 10 WARSTW PREMIA', W - 12, H - 11);
+  }
+  // sample house shown behind the start screen
+  const demoRows = Array.from({length:ROWS_PER_HOUSE}, (_,i) => ({x:(W-START_W)/2 + Math.min(i,4)*3, w:START_W - Math.min(i,4)*5, i}));
+
+  // ---------- menu, pause, ranking ----------
+  let paused = false;
+  const overlays = ['ovMenu', 'ovRank', 'ovOver', 'ovNick', 'ovDuel', 'ovCount'];
+  function show(id){ overlays.forEach(o => $(o).hidden = o !== id); }
+  function startGame(){ paused = false; show(null); $('btnPause').hidden = false; newGame(); cv.focus?.(); }
+  function openMenu(){
+    const inGame = S && S.phase !== 'over';
+    if (inGame) paused = true;
+    $('btnResume').hidden = !inGame;
+    $('btnStart').textContent = inGame ? 'Nowa gra' : 'Start';
+    $('menuTitle').textContent = inGame ? 'Pauza' : 'Zbuduj dom z cegieł';
+    $('menuText').hidden = !!inGame;
+    $('menuBest').textContent = best ? `Twój rekord: ${best} pkt` : '';
+    $('btnPause').hidden = true;
+    show('ovMenu'); (inGame ? $('btnResume') : $('btnStart')).focus();
+  }
+  function resume(){ paused = false; show(null); $('btnPause').hidden = false; last = performance.now(); }
+  let rankBack = 'ovMenu';
+  function openRank(from){ rankBack = from; show('ovRank'); renderRank(); $('btnRankBack').focus(); }
+  $('btnStart').onclick = startGame;
+  $('btnAgain').onclick = () => { if (duel) duelRematch(); else startGame(); };
+  $('btnResume').onclick = resume;
+  $('btnPause').onclick = openMenu;
+  $('btnRank').onclick = () => openRank('ovMenu');
+  $('btnOverRank').onclick = () => openRank('ovOver');
+  $('btnOverMenu').onclick = () => { if (duel) leaveDuel(); S = null; openMenu(); };
+  $('btnRankBack').onclick = () => { show(rankBack); if (rankBack === 'ovMenu') openMenu(); };
+  addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key !== 'Escape' && e.key !== 'p' && e.key !== 'P') return;
+    if (S && S.duel) return;
+    if (S && S.phase === 'play' && !paused && $('ovMenu').hidden) openMenu();
+    else if (!$('ovMenu').hidden && paused) resume();
+  });
+
+  // local results (this browser) — always available
+  function localResults(){ try { return JSON.parse(localStorage.getItem('murarz-wyniki')) || []; } catch(e){ return []; } }
+  function saveLocal(r){ try { const a = localResults(); a.push(r); a.sort((x, y) => y.score - x.score); localStorage.setItem('murarz-wyniki', JSON.stringify(a.slice(0, 20))); } catch(e){} }
+
+  // shared ranking (db) — lights up when the viewer serves it
+  let roomCap = null;
+  let db = null, user = null, myId = null, top = null, myBest = null, rankErr = false, rankTab = 'all';
+  (async () => {
+    let be = null;
+    try { be = await initBackend(); } catch(e){ console.warn('Firebase:', e); }
+    if (!be) return;
+    ({ db, user, roomCap } = be);
+    if (user) myId = await user.id();
+    showNick();
+    if (!db) return;
+    $('rankTabs').hidden = false;
+    db.collection('scores').orderBy('score', 'desc').limit(10).onSnapshot(
+      snap => { top = snap.docs.map(d => d.data()); rankErr = false; if (!$('ovRank').hidden) renderRank(); },
+      () => { rankErr = true; if (!$('ovRank').hidden) renderRank(); });
+    if (myId) db.doc('scores/' + myId).onSnapshot(
+      snap => { myBest = snap.exists ? snap.data() : null; if (!$('ovRank').hidden) renderRank(); }, () => {});
+  })();
+
+  async function submitScore(score, layers){
+    const r = { score, layers, at: new Date().toISOString() };
+    if (score <= 0) return '';
+    saveLocal(r);
+    if (!db || !myId) return 'Wynik zapisany w tej przeglądarce';
+    try {
+      const ref = db.doc('scores/' + myId), cur = await ref.get();
+      const prev = cur.exists ? cur.data().score : 0;
+      if (score > prev){
+        await ref.set({ uid: myId, ...r, nick: nick || '' });
+        const above = (top || []).filter(t => t.uid !== myId && t.score > score).length;
+        return above < 10 ? `Miejsce ${above + 1} w rankingu!` : `${score} pkt w rankingu — nowy rekord osobisty`;
+      }
+      return `W rankingu zostaje twój lepszy wynik: ${prev} pkt`;
+    } catch(e){ return 'Nie udało się zapisać wyniku w rankingu'; }
+  }
+
+  const dateTxt = iso => { try { return new Date(iso).toLocaleDateString('pl-PL', { day:'numeric', month:'short' }); } catch(e){ return ''; } };
+  const resTxt = r => typeof r.layers === 'number' ? layersTxt(r.layers) : housesTxt(r.houses || 0);
+  const housesTxt = n => `${n} ${n === 1 ? 'dom' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'domy' : 'domów')}`;
+  function rowEl(pos, name, sub, pts, avatar, me){
+    const li = document.createElement('li'); if (me) li.className = 'me';
+    const p = document.createElement('span'); p.className = 'pos'; p.textContent = pos;
+    const img = document.createElement('img'); img.alt = ''; img.src = avatar || initialAvatar(name);
+    const who = document.createElement('span'); who.className = 'who';
+    const b = document.createElement('b'); b.textContent = name;
+    const sm = document.createElement('small'); sm.textContent = sub;
+    who.append(b, sm);
+    const s = document.createElement('span'); s.className = 'pts'; s.textContent = pts;
+    li.append(p, img, who, s); return li;
+  }
+  async function renderRank(){
+    const list = $('rankList'), note = $('rankNote');
+    const showShared = db && rankTab === 'all';
+    $('tabAll').setAttribute('aria-pressed', rankTab === 'all');
+    $('tabMine').setAttribute('aria-pressed', rankTab === 'mine');
+    if (showShared){
+      if (!top){ list.replaceChildren(); note.textContent = rankErr ? 'Ranking jest teraz niedostępny.' : 'Wczytuję ranking…'; return; }
+      const ps = user ? await user.profiles(top.map(t => t.uid)) : {};
+      list.replaceChildren(...top.map((t, i) => {
+        const p = ps[t.uid] || {};
+        const label = t.uid === myId ? (nick || p.name || 'Ty') : (t.nick || p.name || 'Murarz');
+        return rowEl(i + 1, label, `${resTxt(t)} · ${dateTxt(t.at)}`, t.score, p.avatarUrl, t.uid === myId);
+      }));
+      const inTop = myId && top.some(t => t.uid === myId);
+      note.textContent = !top.length ? 'Nikt jeszcze nie zagrał. Zdobądź pierwsze miejsce!'
+        : !myId ? 'Twoje wyniki zapisują się tylko w tej przeglądarce (zakładka „Moje wyniki”).'
+        : inTop ? 'Twoje miejsce jest podświetlone.'
+        : myBest ? `Twój rekord: ${myBest.score} pkt. Do pierwszej dziesiątki brakuje ${Math.max(1, top[top.length - 1].score - myBest.score + 1)} pkt.`
+        : 'Zagraj, żeby trafić do rankingu.';
+    } else {
+      const a = localResults().slice(0, 10);
+      const me = user ? await user.me() : null;
+      list.replaceChildren(...a.map((r, i) => rowEl(i + 1, nick || 'Ty', `${resTxt(r)} · ${dateTxt(r.at)}`, r.score, me?.avatarUrl, false)));
+      note.textContent = a.length ? 'Najlepsze wyniki z tej przeglądarki.' : 'Nie masz jeszcze wyników. Kliknij Start!';
+    }
+  }
+  $('tabAll').onclick = () => { rankTab = 'all'; renderRank(); };
+  $('tabMine').onclick = () => { rankTab = 'mine'; renderRank(); };
+  $('menuBest').textContent = best ? `Twój rekord: ${best} pkt` : '';
+
+
+  // ---------- two players online (named rooms) ----------
+  let duel = null, oppView = null, lastStream = 0;
+  const myPres = { v: 1, st: 'lobby', round: 0, score: 0, layers: 0, rows: [], cx: 0, cw: 0, joined: 0, nick: '' };
+  const CODE_CH = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const newCode = () => Array.from({length: 4}, () => CODE_CH[Math.floor(Math.random() * CODE_CH.length)]).join('');
+  const duelMsg = t => { $('duelMsg').textContent = t || ''; };
+  function pres(patch){ Object.assign(myPres, patch); if (duel) duel.r.presence(patch).catch(() => {}); }
+  function players(){
+    if (!duel) return { me: null, opp: null, full: false };
+    const all = duel.r.peers().filter(p => p.presence && p.presence.v === 1 && p.kind === 'viewer');
+    const sorted = [...all].sort((a, b) => (a.presence.joined || 0) - (b.presence.joined || 0) || (a.peer < b.peer ? -1 : 1));
+    const meIdx = sorted.findIndex(p => p.sameTab);
+    const others = sorted.filter(p => !p.sameTab);
+    return { opp: others[0] || null, full: meIdx >= 2 };
+  }
+  async function peerName(p){
+    const pr = p.presence || {};
+    if (typeof pr.nick === 'string' && pr.nick.trim()) return cleanNick(pr.nick);
+    if (p.by && user){ const ps = await user.profiles([p.by]); if (ps[p.by] && ps[p.by].name) return ps[p.by].name; }
+    return 'Przeciwnik';
+  }
+  async function peerAvatar(p){ if (p.by && user){ const ps = await user.profiles([p.by]); return ps[p.by]?.avatarUrl || ''; } return ''; }
+
+  function openDuel(){
+    if (!roomCap){
+      show('ovDuel'); $('duelPick').hidden = true; $('duelLobby').hidden = true;
+      duelMsg('Gra we dwoje i wspólny ranking wymagają podłączenia Firebase. Instrukcja jest w pliku README.');
+      return;
+    }
+    duelMsg(''); show('ovDuel');
+    $('duelPick').hidden = !!duel; $('duelLobby').hidden = !duel;
+    if (duel) duelTick(); else $('duelCreate').focus();
+  }
+  async function enterRoom(code){
+    duelMsg('Łączę…');
+    $('duelCreate').disabled = $('duelJoin').disabled = true;
+    try {
+      const r = await roomCap.join('duel-' + code);
+      duel = { r, code, unsubs: [], countdown: null, startedRound: -1, oppLeftAt: 0 };
+      pres({ v: 1, st: 'lobby', round: 0, joined: Date.now(), nick: nick || '', score: 0, layers: 0, rows: [] });
+      r.presence({ ...myPres }).catch(() => {});
+      duel.unsubs.push(r.onPeers(() => duelTick(), () => { duelMsg('Połączenie z pokojem zostało przerwane.'); }));
+      $('duelCode').textContent = code.toUpperCase();
+      duelMsg(''); $('duelPick').hidden = true; $('duelLobby').hidden = false;
+      duelTick();
+    } catch(e){
+      duelMsg(e && e.code === 'not_permitted' ? 'Nie możesz dołączać do pokoi w tej grze.' : 'Nie udało się połączyć. Spróbuj jeszcze raz.');
+    }
+    $('duelCreate').disabled = $('duelJoin').disabled = false;
+  }
+  function leaveDuel(){
+    if (!duel) return;
+    const d = duel; duel = null; oppView = null;
+    clearInterval(d.countdown);
+    d.unsubs.forEach(u => { try { u(); } catch(e){} });
+    d.r.leave().catch(() => {});
+    $('opp').hidden = true; $('overDuel').hidden = true; $('btnAgain').textContent = 'Jeszcze raz';
+    if (S) S.duel = false;
+  }
+  function duelReady(){
+    if (!duel) return;
+    const { opp } = players();
+    const op = opp ? opp.presence : null;
+    const round = op && op.st === 'ready' ? op.round : Math.max(myPres.round, op ? op.round || 0 : 0) + 1;
+    pres({ st: 'ready', round, score: 0, layers: 0, rows: [] });
+    duelTick();
+  }
+  function duelRematch(){ show('ovDuel'); $('duelPick').hidden = true; $('duelLobby').hidden = false; duelReady(); }
+
+  async function duelTick(){
+    if (!duel) return;
+    const { opp, full } = players();
+    if (full){ duelMsg('Ten pokój jest już pełny. Załóż nowy.'); leaveDuel(); $('duelPick').hidden = false; $('duelLobby').hidden = true; return; }
+    const op = opp ? opp.presence : null;
+    // lobby list
+    if (!$('ovDuel').hidden){
+      const rows = [];
+      const meAv = user ? (await user.me()).avatarUrl : '';
+      rows.push(playerRow(nick || (user && (await user.me()).name) || 'Ty', meAv, myPres.st === 'ready' ? 'Gotowy' : 'Czeka', myPres.st === 'ready', false));
+      if (opp) rows.push(playerRow(await peerName(opp), await peerAvatar(opp), op.st === 'ready' ? 'Gotowy' : op.st === 'play' ? 'Gra' : 'Czeka', op.st === 'ready', false));
+      else rows.push(playerRow('Czekam na drugą osobę…', '', '', false, true));
+      if (!duel) return;
+      $('duelPlayers').replaceChildren(...rows);
+      $('duelHint').textContent = opp ? 'Przeciwnik jest w pokoju.' : 'Podaj ten kod drugiej osobie.';
+      $('duelReady').disabled = myPres.st === 'ready';
+      $('duelReady').textContent = myPres.st === 'ready' ? (opp ? 'Czekam na przeciwnika…' : 'Czekam na drugą osobę…') : 'Gotowy!';
+    }
+    // start when both are ready for the same round
+    if (myPres.st === 'ready' && op && op.st === 'ready' && op.round === myPres.round && duel.startedRound !== myPres.round && !duel.countdown){
+      duel.startedRound = myPres.round;
+      startCountdown(await peerName(opp));
+    }
+    // opponent view during and after the game
+    if (opp && op && op.round === myPres.round && (op.st === 'play' || op.st === 'over')){
+      oppView = { name: await peerName(opp), layers: op.layers | 0, score: op.score | 0, rows: Array.isArray(op.rows) ? op.rows : [], cx: +op.cx || 0, cw: +op.cw || 0, st: op.st, left: false };
+    } else if (!opp && oppView && S && S.duel){
+      oppView = { ...oppView, left: true, st: 'over' };
+    }
+    if (!duel) return;
+    drawOpp();
+    if (S && S.duel && S.phase === 'over' && !$('ovOver').hidden) showDuelResult();
+  }
+  function playerRow(name, av, st, ok, wait){
+    const d = document.createElement('div'); d.className = 'duel-player' + (wait ? ' wait' : '');
+    const img = document.createElement('img'); img.alt = ''; if (!wait) img.src = av || initialAvatar(name);
+    const b = document.createElement('b'); b.textContent = name;
+    const s2 = document.createElement('span'); s2.className = 'st' + (ok ? ' ok' : ''); s2.textContent = st;
+    d.append(img, b, s2); return d;
+  }
+  function startCountdown(oppName){
+    let n = 3;
+    $('countNum').textContent = n; $('countVs').textContent = `Ty kontra ${oppName}`;
+    show('ovCount');
+    duel.countdown = setInterval(() => {
+      n--;
+      if (n > 0){ $('countNum').textContent = n; return; }
+      clearInterval(duel.countdown); duel.countdown = null;
+      oppView = null;
+      startGame(); S.duel = true; $('btnPause').hidden = true;
+      $('opp').hidden = false; $('btnAgain').textContent = 'Rewanż';
+      pres({ st: 'play', score: 0, layers: 0, rows: [], cx: 0, cw: 0 });
+    }, 800);
+  }
+  function duelStream(force){
+    const now = performance.now();
+    if (!force && now - lastStream < 150) return;
+    lastStream = now;
+    const rows = S.rows.slice(-18).map(r => [Math.round(r.x), Math.round(r.w)]);
+    const c = S.cur;
+    pres({ st: S.phase === 'over' ? 'over' : 'play', score: S.score, layers: S.phase === 'over' ? S.layers : S.rows.length, rows,
+           cx: c ? Math.round(c.x) : 0, cw: c ? Math.round(c.w) : 0 });
+  }
+  function drawOpp(){
+    const g = $('oppCv').getContext('2d'), w = 192, h = 240, k = w / W;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = '#27365a'; g.fillRect(0, 0, w, h);
+    if (!oppView){ $('oppName').textContent = 'Przeciwnik'; $('oppInfo').textContent = 'czeka…'; return; }
+    const rh = 12, base = h - 16;
+    g.fillStyle = '#4f7a45'; g.fillRect(0, base, w, 16);
+    const rows = oppView.rows, n = oppView.layers, skip = n - rows.length;
+    rows.forEach((r, i) => {
+      const y = base - (i + 1) * rh; if (y < -rh) return;
+      g.fillStyle = '#d8cdbd'; g.fillRect(r[0] * k, y, r[1] * k, rh);
+      g.fillStyle = ((i + skip) % 2) ? '#b84a33' : '#c0543a'; g.fillRect(r[0] * k + 1, y + 1, r[1] * k - 2, rh - 2);
+    });
+    if (oppView.st === 'play' && oppView.cw){
+      const y = Math.max(4, base - (rows.length + 3) * rh);
+      g.fillStyle = '#e0a93a'; g.fillRect(oppView.cx * k, y, oppView.cw * k, rh);
+    }
+    if (oppView.st === 'over'){
+      g.fillStyle = 'rgba(20,26,40,.6)'; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#ff9b87'; g.font = '800 26px Nunito, sans-serif'; g.textAlign = 'center';
+      g.fillText(oppView.left ? 'WYSZEDŁ' : 'ODPADŁ', w / 2, h / 2);
+    }
+    $('oppName').textContent = oppView.name;
+    $('oppInfo').textContent = `${oppView.layers} w · ${oppView.score} pkt`;
+  }
+  function showDuelResult(){
+    const el = $('overDuel'); el.hidden = false;
+    const mine = { layers: S.layers | 0, score: S.score };
+    if (!oppView){ el.textContent = 'Czekam na wynik przeciwnika…'; return; }
+    if (oppView.st !== 'over'){
+      el.textContent = `${oppView.name} jeszcze muruje: ${oppView.layers} warstw, ${oppView.score} pkt. Czekamy…`;
+      $('overTitle').textContent = 'Warstwa spadła!';
+      return;
+    }
+    const a = mine.layers - oppView.layers || mine.score - oppView.score;
+    $('overTitle').textContent = oppView.left ? 'Przeciwnik wyszedł' : a > 0 ? 'Wygrałeś!' : a < 0 ? 'Przegrałeś' : 'Remis!';
+    el.textContent = `Ty: ${layersTxt(mine.layers)}, ${mine.score} pkt · ${oppView.name}: ${layersTxt(oppView.layers)}, ${oppView.score} pkt.`;
+  }
+  $('btnDuel').onclick = openDuel;
+  $('duelCreate').onclick = () => enterRoom(newCode());
+  $('duelJoinForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const c = $('duelCodeIn').value.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (c.length !== 4){ duelMsg('Kod ma 4 znaki, np. K7PM.'); return; }
+    enterRoom(c);
+  });
+  $('duelReady').onclick = duelReady;
+  $('duelBack').onclick = () => { leaveDuel(); openMenu(); };
+
+  // ---------- nickname ----------
+  let nick = '';
+  try { nick = localStorage.getItem('murarz-nick') || ''; } catch(e){}
+  const cleanNick = v => v.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+  async function nickFallback(){ const me = user ? await user.me() : null; return (me && me.name) || 'Murarz'; }
+  async function showNick(){ $('nickShow').textContent = nick || await nickFallback(); }
+  let nickBack = 'ovMenu';
+  async function openNick(from){
+    nickBack = from; $('nickErr').textContent = '';
+    $('nickInput').value = nick || ((user && (await user.me()).name) || '');
+    show('ovNick'); $('nickInput').focus(); $('nickInput').select();
+  }
+  function closeNick(){ if (nickBack === 'ovRank'){ show('ovRank'); renderRank(); } else openMenu(); }
+  $('btnNick').onclick = () => openNick('ovMenu');
+  $('btnRankNick').onclick = () => openNick('ovRank');
+  $('nickCancel').onclick = closeNick;
+  $('nickInput').addEventListener('keydown', e => { if (e.key === 'Escape'){ e.preventDefault(); closeNick(); } });
+  $('nickForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const v = cleanNick($('nickInput').value);
+    if (v.length < 2){ $('nickErr').textContent = 'Nick musi mieć od 2 do 16 znaków.'; return; }
+    nick = v;
+    if (duel) pres({ nick: v });
+    try { localStorage.setItem('murarz-nick', v); } catch(err){}
+    $('nickSave').disabled = true;
+    if (db && myId){
+      try {
+        const ref = db.doc('scores/' + myId), cur = await ref.get();
+        if (cur.exists && cur.data().nick !== v) await ref.update({ nick: v });
+      } catch(err){ $('nickErr').textContent = 'Nick zapisany tutaj, ale ranking go jeszcze nie widzi. Pojawi się przy następnym wyniku.'; }
+    }
+    $('nickSave').disabled = false;
+    showNick();
+    if (!$('nickErr').textContent) closeNick();
+    else setTimeout(closeNick, 1800);
+  });
+  showNick();
+  cv.addEventListener('pointerdown', e => { e.preventDefault(); drop(); });
+  addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter'){
+      if (overlays.some(o => !$(o).hidden)) return;
+      e.preventDefault(); drop();
+    }
+  });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
